@@ -445,7 +445,7 @@ void sigchld_handler(int sig)
             job -> state = ST;
 
 
-            printf("Job [%d] (%d) stopped by signal %d\n",pid2jid(pid),pid,stop_sig);
+            printf("Job [%d] (%d) stopped by signal %d\n",pid2jid(pid),pid,stop_sig); //在信号处理程序中使用printf并不安全，正确实现应使用write等可重入的函数
             sigprocmask(SIG_SETMASK,&prev_mask,NULL);
             continue;
 
