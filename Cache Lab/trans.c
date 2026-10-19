@@ -19,21 +19,23 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
  *     searches for that string to identify the transpose function to
  *     be graded. 
  */
+
+/* 实验使用(s,E,b)参数为5，1，5的模拟cache */
 char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
     //64 x 64
-    if(M == 64)
+    if(M == 64) 
     {
         for(int i=0;i<8;i++)
         {
-            for(int j=0;j<8;j++)
+            for(int j=0;j<8;j++) //先分8x8
             {
                 int raw = 8*i,col = 8*j;
                 
-                    for(int k=raw;k<raw+4;k++)
+                    for(int k=raw;k<raw+4;k++) 再分4个4x4
                     {
-                        int r0 = A[k][col],  //1 miss
+                        int r0 = A[k][col],  //直接读取保存一个缓存行8个int
                             r1 = A[k][col+1],
                             r2 = A[k][col+2],
                             r3 = A[k][col+3],
@@ -42,7 +44,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
                             r6 = A[k][col+6],
                             r7 = A[k][col+7];
 
-                            B[col][k] = r0;  //4 miss
+                            B[col][k] = r0;  // 转置写入b左上，同时使用b的右上4x4暂存b左下的转置
                             B[col+1][k] = r1;
                             B[col+2][k] = r2;
                             B[col+3][k] = r3;
@@ -54,11 +56,11 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
                     }
                     for(int k=col;k<col+4;k++)
                     {
-                        int r0 = A[raw+4][k],   
+                        int r0 = A[raw+4][k],   读取a左下，把b右上加载到缓存，一次性完成读和写，然后把刚才暂存的内容写入b左下
                             r1 = A[raw+5][k],
                             r2 = A[raw+6][k],
-                            r3 = A[raw+7][k],
-                            r4 = B[k][raw+4],
+                            r3 = A[raw+7][k], 
+                            r4 = B[k][raw+4],  
                             r5 = B[k][raw+5],
                             r6 = B[k][raw+6],
                             r7 = B[k][raw+7];
@@ -67,7 +69,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
                             B[k][raw+5] = r1;
                             B[k][raw+6] = r2;
                             B[k][raw+7] = r3;
-                            B[k+4][raw] = r4;
+                            B[k+4][raw] = r4; 
                             B[k+4][raw+1] = r5;
                             B[k+4][raw+2] = r6;
                             B[k+4][raw+3] = r7;
@@ -75,14 +77,14 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
                     }
 
                     
-                    for(int k = 4;k<8;k++)
+                    for(int k = 4;k<8;k++) //把a右下先全部读入b再转置，减少冲突miss
                     {
-                        int r0 = A[k+raw][col+4],   // 1 miss
+                        int r0 = A[k+raw][col+4],   
                             r1 = A[k+raw][col+5],
                             r2 = A[k+raw][col+6],
                             r3 = A[k+raw][col+7];
 
-                            B[col+k][raw+4] = r0;  
+                            B[col+k][raw+4] = r0; 
                             B[col+k][raw+5] = r1;
                             B[col+k][raw+6] = r2;
                             B[col+k][raw+7] = r3;
@@ -90,8 +92,8 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
                             
                     }
                    
-                    if(i==j){
-                        for(int k = raw+4; k < raw+8; k++)
+                    if(i==j){ //对角线
+                        for(int k = raw+4; k < raw+8; k++) 
                         {
                             for(int r = k+1; r < col+8; r++)
                             {
@@ -105,7 +107,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 
                     col = col+4;
                     raw = raw+4;
-                    for(int k = 0;k<4;k++)
+                    for(int k = 0;k<4;k++) //非对角线
                     {
                         for(int r = k+1;r < 4;r++)
                         {
@@ -123,7 +125,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
         return;
     }
 
-    if(M == 61){
+    if(M == 61){ //61x67，先对前56x64采用8x8分块，再分别处理剩余61x5和3x56
         for(int i=0;i<8;i++)
         {
             for(int j=0;j<7;j++)
@@ -208,7 +210,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 
         return;
     }
-    //32 x 32
+    //32 x 32 对角线使用8x8分块减少抖动，其余部分可全部读入缓存且不冲突，直接转置即可
     for(int n=0;n<4;n++)
     {
         for(int m=0;m<4;m++)
