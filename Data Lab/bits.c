@@ -131,7 +131,7 @@
  *   Max ops: 14
  *   Rating: 1
  */
-int bitXor(int x, int y) {
+int bitXor(int x, int y) {   //异或运算：a 与 （非b）或 b 与 （非a），再整体取两次反变成0或1
     return ~(~(x & ~y) & ~(~x & y));
 }
 /* 
@@ -140,7 +140,7 @@ int bitXor(int x, int y) {
  *   Max ops: 4
  *   Rating: 1
  */
-int tmin(void) {
+int tmin(void) {  //补码最小值，最高位1，其余位全0
 
   return (1 << 31);
 
@@ -153,7 +153,7 @@ int tmin(void) {
  *   Max ops: 10
  *   Rating: 1
  */
-int isTmax(int x) {
+int isTmax(int x) {   //Tmax+1变Tmin，两个tmin相加变0，再与 ！！（x+1）判断原数非零
   return (!((x + 1u) + (x + 1u))) & (!!(x + 1u));
 }
 /* 
@@ -164,12 +164,12 @@ int isTmax(int x) {
  *   Max ops: 12
  *   Rating: 2
  */
-int allOddBits(int x) {
+int allOddBits(int x) { 
   int mask = 0x55;
-  mask = mask | (mask << 8);
+  mask = mask | (mask << 8); 构造奇数位全1掩码
   mask = mask | (mask << 16);
   mask = mask << 1;
-  return !((x & mask) ^ mask);
+  return !((x & mask) ^ mask); 提取奇数位，再根据一个数异或自己得0判断
 }
 /* 
  * negate - return -x 
@@ -178,7 +178,7 @@ int allOddBits(int x) {
  *   Max ops: 5
  *   Rating: 2
  */
-int negate(int x) {
+int negate(int x) { 求相反数公式：按位取反再加一
   return (~x) + 1;
 }
 //3
@@ -191,7 +191,7 @@ int negate(int x) {
  *   Max ops: 15
  *   Rating: 3
  */
-int isAsciiDigit(int x) {
+int isAsciiDigit(int x) { //判断4-7位为0x3，低4位小于等于9，判断方法是+6是否产生进位使低四位为0
   return !((x >> 4) ^ 0x3) & !(((x & 0xF) + 6) >> 4);
 }
 /* 
@@ -201,10 +201,10 @@ int isAsciiDigit(int x) {
  *   Max ops: 16
  *   Rating: 3
  */
-int conditional(int x, int y, int z) {
-  int sub_1 = (~1) + 1;
-  int mux = (!!x) + sub_1;
-  return (y & ~mux) | (z & mux);
+int conditional(int x, int y, int z) { //一个数按位与0得0，按位与全一（补码-1）为自身
+  int sub_1 = (~1) + 1; //构造-1
+  int mux = (!!x) + sub_1; //把条件码1映射为全0，0映射为全1（-1），于是~mux表示条件为真，mux表示假
+  return (y & ~mux) | (z & mux); 
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -213,7 +213,7 @@ int conditional(int x, int y, int z) {
  *   Max ops: 24
  *   Rating: 3
  */
-int isLessOrEqual(int x, int y) {
+int isLessOrEqual(int x, int y) { //先判断x是否为INT_MIN，保证加法不溢出，然后判断y-x的符号位
   int neg_x = ~x + 1;
   return(!(x ^ (1<<31))) | (!(((y + neg_x) >> 31) & 1));
 }
@@ -226,7 +226,7 @@ int isLessOrEqual(int x, int y) {
  *   Max ops: 12
  *   Rating: 4 
  */
-int logicalNeg(int x) {
+int logicalNeg(int x) { //用正负0符号位相同来检测0
   int negx = ~x + 1;
   int sign = (x >> 31) | (negx >> 31);
   return ~sign & 1;
@@ -243,7 +243,7 @@ int logicalNeg(int x) {
  *  Max ops: 90
  *  Rating: 4
  */
-int howManyBits(int x) {
+int howManyBits(int x) {  //二分查找，高位有数就移位
   int mask = x >> 31;
   int y = x ^ mask;
   int bits = 0,tmp;
@@ -282,7 +282,9 @@ int howManyBits(int x) {
  *   Max ops: 30
  *   Rating: 4
  */
-unsigned floatScale2(unsigned uf) {
+
+//IEEE754 float: 1位符号+8位阶码+23位尾数
+unsigned floatScale2(unsigned uf) { //2*f，如果无穷和NaN直接返回，阶码为254返回无穷，否则返回原数阶码+1后的值，非规格化数直接尾数左移一位
   unsigned s = uf >> 31;
   unsigned e = (uf & ((0xff) << 23)) >> 23;
   unsigned f = uf & 0x007fffff;
@@ -311,7 +313,7 @@ unsigned floatScale2(unsigned uf) {
  *   Max ops: 30
  *   Rating: 4
  */
-int floatFloat2Int(unsigned uf) {
+int floatFloat2Int(unsigned uf) { //保留符号位，NaN和无穷返回0x80000000u，如果移位后超过int范围(-2^31 to 2^31-1)返回0x80000000u或0,然后用移位计算正常范围的数
   unsigned s = uf & 0x80000000;
   unsigned e = (uf & 0x7f800000) >> 23;
   unsigned m = uf & 0x7fffff;
@@ -351,7 +353,7 @@ int floatFloat2Int(unsigned uf) {
  *   Max ops: 30 
  *   Rating: 4
  */
-unsigned floatPower2(int x) {
+unsigned floatPower2(int x) { //float阶数范围-126-127，大于127返回无穷，小于-126返回0，否则返回一个尾数为0（隐含一个1），阶码为x+127的数
   if(x > 127) return 0x7f800000u;
   if(x < -126) return 0u;
   return (x + 127) << 23;
