@@ -213,9 +213,11 @@ int conditional(int x, int y, int z) { //一个数按位与0得0，按位与全�
  *   Max ops: 24
  *   Rating: 3
  */
-int isLessOrEqual(int x, int y) { //先判断x是否为INT_MIN，保证加法不溢出，然后判断y-x的符号位
+int isLessOrEqual(int x, int y) { //先判断x是否为INT_MIN，若同号可判断y-x的符号位，再加上x负y正的情况
   int neg_x = ~x + 1;
-  return(!(x ^ (1<<31))) | (!(((y + neg_x) >> 31) & 1));
+  int x_sign = (x >> 31) & 1;
+  int y_sign = (y >> 31) & 1;
+  return(!(x ^ (1<<31))) | (!(((y + neg_x) >> 31) & 1) & !((x_sign)^(y_sign))) | ((x_sign) & (!y_sign));
 }
 //4
 /* 
